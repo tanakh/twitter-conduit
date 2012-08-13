@@ -17,20 +17,19 @@ source-repository head
   location: git://github.com/tanakh/twitter-conduit.git
 
 library
-  build-depends:   base == 4.*
-                 , mtl == 2.0.*
-                 , conduit == 0.4.*
+  build-depends:   base               == 4.5.*
+                 , mtl                == 2.1.*
+                 , conduit            == 0.5.*
                  , resourcet
-                 , attoparsec == 0.10.*
+                 , attoparsec         >= 0.10
                  , attoparsec-conduit
-                 , authenticate-oauth
-                 , aeson == 0.6.*
+                 , authenticate-oauth >= 1.4
+                 , aeson              >= 0.6
                  , http-types
-                 , http-conduit == 1.4.*
-                 , bytestring
-                 , text
-                 , containers
-
+                 , http-conduit       >= 1.5
+                 , bytestring         >= 0.9
+                 , text               >= 0.10
+                 , containers         >= 0.5
                  , directory
                  , filepath
                  , case-insensitive
@@ -51,38 +50,34 @@ library
 
   ghc-options:     -Wall
 
-
 executable oslist
-  main-is: oslist.hs
-  hs-source-dirs: sample
+  main-is:         oslist.hs
+  hs-source-dirs:  sample
 
-  ghc-options: -Wall
+  ghc-options:     -Wall
 
-  build-depends:
-      base == 4.*
-    , twitter-conduit
+  build-depends:   base
+                 , twitter-conduit
 
-  other-modules:
-    Common
+  other-modules:   Common
 
 executable userstream
-  main-is: userstream.hs
-  hs-source-dirs: sample
+  main-is:         userstream.hs
+  hs-source-dirs:  sample
 
-  ghc-options: -Wall
+  ghc-options:     -Wall
 
-  build-depends:
-      base == 4.*
-    , mtl == 2.0.*
-    , containers
-    , conduit
-    , directory
-    , filepath
-    , attoparsec
-    , bytestring
-    , case-insensitive
-    , aeson
-    , http-conduit
-    , network
-    , authenticate-oauth
-    , twitter-conduit
+  build-depends:   base
+                 , mtl
+                 , containers
+                 , conduit
+                 , directory
+                 , filepath
+                 , attoparsec
+                 , bytestring
+                 , case-insensitive
+                 , aeson
+                 , http-conduit
+                 , network
+                 , authenticate-oauth
+                 , twitter-conduit
