@@ -1,5 +1,5 @@
 name:              twitter-conduit
-version:           0.0.0
+version:           0.1.0
 license:           BSD3
 license-file:      LICENSE
 author:            Hideyuki Tanaka, Takahiro HIMURA
@@ -17,35 +17,40 @@ source-repository head
   location: git://github.com/tanakh/twitter-conduit.git
 
 library
-  ghc-options: -Wall
+  build-depends:   base == 4.*
+                 , mtl == 2.0.*
+                 , conduit == 0.4.*
+                 , resourcet
+                 , attoparsec == 0.10.*
+                 , attoparsec-conduit
+                 , authenticate-oauth
+                 , aeson == 0.6.*
+                 , http-types
+                 , http-conduit == 1.4.*
+                 , bytestring
+                 , text
+                 , containers
 
-  build-depends:
-      base == 4.*
-    , mtl == 2.0.*
-    , authenticate-oauth == 1.0.*
-    , conduit == 0.2.*
-    , http-types
-    , http-conduit == 1.2.*
-    , aeson == 0.6.*
-    , attoparsec == 0.10.*
-    , attoparsec-conduit
-    , bytestring
-    , text
-    , containers
+                 , directory
+                 , filepath
+                 , case-insensitive
+                 , network
 
-  exposed-modules:
-    Web.Twitter
-    Web.Twitter.Api
-    Web.Twitter.Fetch
-    Web.Twitter.Monad
-    Web.Twitter.Post
-    Web.Twitter.Query
-    Web.Twitter.Stream
-    Web.Twitter.Status
-    Web.Twitter.Types
+  exposed-modules: Web.Twitter
+                   Web.Twitter.Api
+                   Web.Twitter.Fetch
+                   Web.Twitter.Monad
+                   Web.Twitter.Post
+                   Web.Twitter.Query
+                   Web.Twitter.Stream
+                   Web.Twitter.Status
+                   Web.Twitter.Types
 
-  other-modules:
-    Web.Twitter.Utils
+  other-modules:   Web.Twitter.Utils
+                   Common
+
+  ghc-options:     -Wall
+
 
 executable oslist
   main-is: oslist.hs
@@ -55,19 +60,10 @@ executable oslist
 
   build-depends:
       base == 4.*
-    , mtl == 2.0.*
-    , containers == 0.4.*
-    , conduit == 0.2.*
-    , directory == 1.1.*
-    , filepath == 1.3.*
-    , attoparsec == 0.10.*
-    , bytestring == 0.9.*
-    , case-insensitive == 0.4.*
-    , aeson == 0.6.*
-    , http-conduit == 1.2.*
-    , network == 2.3.*
-    , authenticate-oauth == 1.0.*
     , twitter-conduit
+
+  other-modules:
+    Common
 
 executable userstream
   main-is: userstream.hs
@@ -78,15 +74,15 @@ executable userstream
   build-depends:
       base == 4.*
     , mtl == 2.0.*
-    , containers == 0.4.*
-    , conduit == 0.2.*
-    , directory == 1.1.*
-    , filepath == 1.3.*
-    , attoparsec == 0.10.*
-    , bytestring == 0.9.*
-    , case-insensitive == 0.4.*
-    , aeson == 0.6.*
-    , http-conduit == 1.2.*
-    , network == 2.3.*
-    , authenticate-oauth == 1.0.*
+    , containers
+    , conduit
+    , directory
+    , filepath
+    , attoparsec
+    , bytestring
+    , case-insensitive
+    , aeson
+    , http-conduit
+    , network
+    , authenticate-oauth
     , twitter-conduit

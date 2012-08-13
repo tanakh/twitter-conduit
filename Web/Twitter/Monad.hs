@@ -1,24 +1,22 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Web.Twitter.Monad
-       ( TW
-       , TWEnv (..)
-       , runTW
-       , runTWManager
-       , newEnv
-       , getOAuth
-       , getCredential
-       , getProxy
-       , getManager
-       , signOAuthTW
-       )
-       where
+module Web.Twitter.Monad (
+  TW,
+  TWEnv (..),
+  runTW,
+  runTWManager,
+  newEnv,
+  getOAuth,
+  getCredential,
+  getProxy,
+  getManager,
+  signOAuthTW,
+  ) where
 
-import Web.Authenticate.OAuth
-import Network.HTTP.Conduit
 import Control.Monad.Trans
-import Control.Monad.Trans.Resource
 import Control.Monad.Reader
+import Network.HTTP.Conduit
+import Web.Authenticate.OAuth
 
 type TW = ReaderT TWEnv IO
 
@@ -67,7 +65,4 @@ getManager = do
     Nothing -> error "manager is not initialized"
 
 signOAuthTW :: Request TW -> TW (Request TW)
-signOAuthTW req = do
-  oa <- getOAuth
-  cred <- getCredential
-  runResourceT $ signOAuth oa cred req
+signOAuthTW = undefined

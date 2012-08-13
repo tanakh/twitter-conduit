@@ -6,7 +6,6 @@ module Web.Twitter.Utils (
   conduitJSON,
   conduitFromJSON,
   parseFromJSON,
-  conduitParser,
   showBS,
   insertQuery,
   ) where
@@ -19,8 +18,8 @@ import qualified Data.Aeson.Types as AT
 import qualified Data.Attoparsec.Types as A
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B8
-import qualified Data.Conduit as C
-import qualified Data.Conduit.Attoparsec as CA
+import Data.Conduit as C
+import Data.Conduit.Attoparsec
 import Data.Data
 import qualified Network.HTTP.Types as HT
 import qualified Data.Map as M
@@ -38,27 +37,21 @@ parseFromJSON = do
     AT.Error _ -> empty
     AT.Success r -> return r
 
-conduitParser :: (CA.AttoparsecInput a, C.ResourceThrow m) => A.Parser a b -> C.Conduit a m b
-conduitParser p =
-  C.sequenceSink () $ \() -> do
-    ret <- CA.sinkParser p
-    return $ C.Emit () [ret]
+sinkJSON :: MonadResource m => Sink ByteString m Value
+sinkJSON = sinkParser json
 
-sinkJSON :: C.ResourceThrow m => C.Sink ByteString m Value
-sinkJSON = CA.sinkParser json
-
-sinkFromJSON :: (FromJSON a, C.ResourceIO m) => C.Sink ByteString m a
+sinkFromJSON :: (FromJSON a, MonadResource m) => Sink ByteString m a
 sinkFromJSON = do
   v <- sinkJSON
   case fromJSON v of
     AT.Error err -> lift $ liftIO $ throwIO $ TwitterError err
     AT.Success r -> return r
 
-conduitJSON :: C.ResourceThrow m => C.Conduit ByteString m Value
-conduitJSON = conduitParser json
+conduitJSON :: MonadResource m => Conduit ByteString m Value
+conduitJSON = C.sequence sinkJSON
 
-conduitFromJSON :: (FromJSON a, C.ResourceThrow m) => C.Conduit ByteString m a
-conduitFromJSON = conduitParser parseFromJSON
+conduitFromJSON :: (FromJSON a, MonadResource m) => Conduit ByteString m a
+conduitFromJSON = C.sequence sinkFromJSON
 
 showBS :: Show a => a -> ByteString
 showBS = B8.pack . show
