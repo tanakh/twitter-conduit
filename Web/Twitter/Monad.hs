@@ -10,13 +10,13 @@
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Web.Twitter.Monad (
-  -- The Twitter Monad
+  -- * The Twitter Monad
   Twitter, TwitterT, unTwitterT,
   runTwitterT,
   Env(..),
   Config(..), def,
 
-  -- useful re-exports
+  -- * Useful re-exports
   MonadResourceBase,
   ) where
 
@@ -47,6 +47,7 @@ newtype TwitterT_ m a
     , MonadThrow, MonadResource        -- resourcet
     )
 
+-- MonadReader instance need standalone instance for contexts.
 deriving instance (Monad m, MonadReader Env m) => MonadReader Env (TwitterT_ m)
 
 instance MonadTransControl TwitterT_ where
@@ -72,11 +73,11 @@ data Env
 
 data Config
   = Config
-    { configOAuthConsumerKey :: S.ByteString
+    { configOAuthConsumerKey    :: S.ByteString
     , configOAuthConsumerSecret :: S.ByteString
-    , configCredentialFile :: FilePath
-    , configGetPIN :: String -> IO String
-    , configProxy :: Maybe Proxy
+    , configCredentialFile      :: FilePath
+    , configGetPIN              :: String -> IO String
+    , configProxy               :: Maybe Proxy
     }
 
 runTwitterT :: MonadResourceBase m => Config -> TwitterT m a -> m a
@@ -85,10 +86,14 @@ runTwitterT Config {..} m =
     let tokens = createToken configOAuthConsumerKey configOAuthConsumerSecret
 
     cred <- liftIO $ do
-      cred <- loadCredential configCredentialFile
-        >>= maybe (authorize configProxy tokens configGetPIN mng) return
-      saveCredential configCredentialFile cred
-      return cred
+      mbCred <- loadCredential configCredentialFile
+      case mbCred of
+        Nothing -> do
+          cred <- authorize configProxy tokens configGetPIN mng
+          saveCredential configCredentialFile cred
+          return cred
+        Just cred -> do
+          return cred
 
     runReaderT (runIdentityT (unTwitterT m)) Env
       { envOAuth = tokens
@@ -99,11 +104,11 @@ runTwitterT Config {..} m =
 
 createToken :: S.ByteString -> S.ByteString -> OAuth
 createToken consumerKey consumerSecret = newOAuth
-  { oauthServerName = "twitter"
-  , oauthRequestUri = "http://twitter.com/oauth/request_token"
+  { oauthServerName     = "twitter"
+  , oauthRequestUri     = "http://twitter.com/oauth/request_token"
   , oauthAccessTokenUri = "http://twitter.com/oauth/access_token"
-  , oauthAuthorizeUri = "http://twitter.com/oauth/authorize"
-  , oauthConsumerKey = consumerKey
+  , oauthAuthorizeUri   = "http://twitter.com/oauth/authorize"
+  , oauthConsumerKey    = consumerKey
   , oauthConsumerSecret = consumerSecret
   }
 
@@ -113,7 +118,10 @@ loadCredential file = do
   if existp
     then do
       content <- S.readFile file
-      return $ (maybeResult . parse json) content >>= parseMaybe parseJSON >>= return . Credential
+      return $ do
+        j <- maybeResult . parse json $ content
+        c <- parseMaybe parseJSON j
+        return $ Credential c
     else return Nothing
 
 saveCredential :: FilePath -> Credential -> IO ()
