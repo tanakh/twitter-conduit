@@ -12,6 +12,9 @@ module Web.Twitter.Monad (
   runTwitterT,
   Env(..),
   Config(..), def,
+
+  -- useful re-exports
+  MonadResourceBase,
   ) where
 
 import           Control.Applicative
@@ -41,10 +44,8 @@ deriving instance (Monad m, MonadReader Env m) => MonadReader Env (TwitterT_ m)
 instance MonadTransControl TwitterT_ where
   newtype StT TwitterT_ a =
     StTwitterT { unStTwitter :: a }
-
   liftWith f =
     TwitterT_ $ lift $ f $ liftM StTwitterT . runIdentityT . unTwitterT
-
   restoreT =
     TwitterT_ . lift . liftM unStTwitter
 

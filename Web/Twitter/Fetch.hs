@@ -1,14 +1,16 @@
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Web.Twitter.Fetch (
   -- * Search
   -- , search
-  
+
   -- * Direct Messages
   -- , directMessages
   -- , directMessagesSent
   -- , directMessagesShowId
-    
+
   -- * Friends & Followers
   friendsIds,
   followersIds,
@@ -26,15 +28,15 @@ module Web.Twitter.Fetch (
   usersShow,
   -- , usersContributees
   -- , usersContributors
-  
+
   -- * Suggested Users
   -- , usersSuggestions
   -- , usersSuggestionsSlug
   -- , usersSuggestionsSlugMembers
-  
+
   -- * Favorites
   -- , favorites
-  
+
   -- * Lists
   listsAll,
   -- , listsStatuses
@@ -48,38 +50,40 @@ module Web.Twitter.Fetch (
   -- , listsSubscriptions
   ) where
 
-import qualified Data.Conduit as C
-import qualified Data.ByteString.Char8 as B8
-import qualified Network.HTTP.Types as HT
+import qualified Data.ByteString.Char8 as S
+import           Data.Conduit
+import qualified Network.HTTP.Types    as HT
 
-import Web.Twitter.Types
-import Web.Twitter.Monad
-import Web.Twitter.Utils
-import Web.Twitter.Query
-import Web.Twitter.Api
+import           Web.Twitter.Api
+import           Web.Twitter.Monad
+import           Web.Twitter.Query
+import           Web.Twitter.Types
+import           Web.Twitter.Utils
 
 mkQueryUser :: QueryUser -> HT.Query
 mkQueryUser (QUserId uid) =  [("user_id", Just $ showBS uid)]
-mkQueryUser (QScreenName sn) = [("screen_name", Just . B8.pack $ sn)]
+mkQueryUser (QScreenName sn) = [("screen_name", Just . S.pack $ sn)]
 
 mkQueryList :: QueryList -> HT.Query
 mkQueryList (QListId lid) =  [("list_id", Just $ showBS lid)]
 mkQueryList (QListName listname) =
-  [("slug", Just . B8.pack $ lstName),
-   ("owner_screen_name", Just . B8.pack $ screenName)]
+  [("slug", Just . S.pack $ lstName),
+   ("owner_screen_name", Just . S.pack $ screenName)]
   where
     (screenName, ln) = span (/= '/') listname
     lstName = drop 1 ln
 
-friendsIds, followersIds :: QueryUser -> C.Source TW UserId
-friendsIds   q = apiCursor "friends/ids.json"   (mkQueryUser q) "ids"
-followersIds q = apiCursor "followers/ids.json" (mkQueryUser q) "ids"
+friendsIds :: MonadResourceBase m => QueryUser -> Source (TwitterT m) UserId
+friendsIds   q = sourceCursor "GET" "friends/ids.json"   (mkQueryUser q) "ids"
 
-usersShow :: QueryUser -> TW User
-usersShow q = apiGet "users/show.json" (mkQueryUser q)
+followersIds :: MonadResourceBase m => QueryUser -> Source (TwitterT m) UserId
+followersIds q = sourceCursor "GET" "followers/ids.json" (mkQueryUser q) "ids"
 
-listsAll :: QueryUser -> C.Source TW List
-listsAll q = apiCursor "lists/all.json" (mkQueryUser q) ""
+usersShow :: MonadResourceBase m => QueryUser -> TwitterT m User
+usersShow q = apiJSON "GET" "users/show.json" (mkQueryUser q)
 
-listsMembers :: QueryList -> C.Source TW User
-listsMembers q = apiCursor "lists/members.json" (mkQueryList q) "users"
+listsAll :: MonadResourceBase m => QueryUser -> Source (TwitterT m) List
+listsAll q = sourceCursor "GET" "listps/all.json" (mkQueryUser q) ""
+
+listsMembers :: MonadResourceBase m => QueryList -> Source (TwitterT m) User
+listsMembers q = sourceCursor "GET" "lists/members.json" (mkQueryList q) "users"

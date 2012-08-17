@@ -1,42 +1,46 @@
-{-# LANGUAGE RecordWildCards, OverloadedStrings, FlexibleContexts, ConstraintKinds #-}
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
+
 module Web.Twitter.Api (
   sourceTwitter,
---  api,
---  apiGet,
---  apiCursor,
+  sourceCursor,
+  apiJSON,
+
 --  apiWithPages,
   ) where
 
-import Web.Twitter.Monad
-import Web.Twitter.Utils
-import Web.Authenticate.OAuth
+import           Web.Authenticate.OAuth
+import           Web.Twitter.Monad
+import           Web.Twitter.Utils
 
-import Control.Applicative
-import Control.Failure
-import Control.Monad
-import Control.Monad.Reader
-import Control.Monad.Trans
-import Control.Monad.Trans.Control
-import Control.Monad.Trans.Resource
-import Data.Aeson
-import Data.Aeson.Types
-import Data.ByteString (ByteString)
-import Data.Conduit
-import qualified Data.Conduit.List as C
-import Data.Maybe
-import Data.Monoid
-import qualified Data.Text as T
-import Network.HTTP.Conduit
-import qualified Network.HTTP.Types as HT
+import           Control.Applicative
+import           Control.Monad
+import           Control.Monad.Reader
+import           Data.Aeson
+import           Data.Aeson.Types
+import           Data.ByteString        (ByteString)
+import           Data.Conduit
+import qualified Data.Conduit.List      as C
+import           Data.Maybe
+import           Data.Monoid
+import qualified Data.Text              as T
+import           Network.HTTP.Conduit
+import qualified Network.HTTP.Types     as HT
 
 endpoint :: String
 endpoint = "https://api.twitter.com/1/"
 
-sourceTwitter :: (MonadResource m, MonadReader Env m, MonadBaseControl IO m)
-                 => HT.Method -> String -> HT.Query -> m (ResumableSource m ByteString)
+sourceTwitter :: MonadResourceBase m
+                 => HT.Method
+                 -> String
+                 -> HT.Query
+                 -> TwitterT m (ResumableSource (TwitterT m) ByteString)
 sourceTwitter m url query = do
   Env {..} <- ask
-  req0 <- signOAuth envOAuth envCredential $ fromJust $ parseUrl url
+  let url' = fromJust $ parseUrl $ endpoint ++ url
+  req0 <- signOAuth envOAuth envCredential url'
   req  <- return $ req0
           { method = m
           , queryString = HT.renderQuery False query
@@ -45,12 +49,25 @@ sourceTwitter m url query = do
   resp <- http req envManager
   return $ responseBody resp
 
--- getJSON :: (FromJSON a, Monad m) => String -> HT.Query -> TwitterT m a
-getJSON :: (FromJSON b, MonadResourceBase m)
-           => String -> HT.Query -> TwitterT m b
-getJSON url query = do
-  rs <- sourceTwitter "GET" url query
-  rs $$+- sinkJSON
+sourceCursor :: (FromJSON a, MonadResourceBase m)
+             => HT.Method
+             -> String
+             -> HT.Query
+             -> T.Text
+             -> Source (TwitterT m) a
+sourceCursor m url query cursorKey = go (-1 :: Int) where
+  go cursor = do
+    let query' = ("cursor", Just $ showBS cursor) `insertQuery` query
+    j <- lift $ apiJSON m url query'
+    case parseMaybe p j of
+      Nothing ->
+        return ()
+      Just (res, nextCursor) -> do
+        C.sourceList res
+        when (nextCursor > 0) $ go nextCursor
+
+  p (Object v) = (,) <$> v .: cursorKey <*> v .: "next_cursor"
+  p _ = mempty
 
 {-
 apiCursor :: (FromJSON a, Monad m)
@@ -83,3 +100,9 @@ apiWithPages url query = go 1 where
       mapM_ rs yield
       go $ page + 1
 -}
+
+apiJSON :: (FromJSON b, MonadResourceBase m)
+           => HT.Method -> String -> HT.Query -> TwitterT m b
+apiJSON m url query = do
+  rs <- sourceTwitter m url query
+  rs $$+- sinkJSON

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ConstraintKinds, FlexibleContexts #-}
 
 module Web.Twitter.Post
        ( statusesUpdate
@@ -20,15 +21,12 @@ module Web.Twitter.Post
        )
        where
 
+import Control.Monad.Trans.Resource
+import Data.ByteString (ByteString)
+
 import Web.Twitter.Monad
 import Web.Twitter.Api
 
-import Data.ByteString (ByteString)
-
-import qualified Data.Conduit as C
-import qualified Data.Conduit.List as CL
-
-statusesUpdate :: ByteString -> TW ()
+statusesUpdate :: MonadResourceBase m => ByteString -> TwitterT m ()
 statusesUpdate tweet =
-  C.runResourceT $
-    api "POST" "statuses/update.json" [("status", Just tweet)] C.$$ CL.sinkNull
+  apiJSON "POST" "statuses/update.json" [("status", Just tweet)]
