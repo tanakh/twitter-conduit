@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
@@ -18,14 +20,19 @@ module Web.Twitter.Monad (
   ) where
 
 import           Control.Applicative
-import           Control.Exception
 import           Control.Monad.Base
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Control
 import           Control.Monad.Trans.Identity
 import           Control.Monad.Trans.Resource
+import           Data.Aeson
+import           Data.Aeson.Types             (parseMaybe)
+import           Data.Attoparsec
+import qualified Data.ByteString.Char8        as S
+import qualified Data.ByteString.Lazy.Char8   as L
 import           Data.Default
 import           Network.HTTP.Conduit
+import           System.Directory
 import           Web.Authenticate.OAuth
 
 type Twitter    = TwitterT IO
@@ -64,19 +71,56 @@ data Env
 
 data Config
   = Config
-    {
+    { configOAuthConsumerKey :: S.ByteString
+    , configOAuthConsumerSecret :: S.ByteString
+    , configCredentialFile :: FilePath
+    , configGetPIN :: String -> IO String
+    , configProxy :: Maybe Proxy
     }
 
-instance Default Config where
-  def = Config {}
-
 runTwitterT :: MonadResourceBase m => Config -> TwitterT m a -> m a
-runTwitterT _conf m =
+runTwitterT Config {..} m =
   withManager $ \mng -> do
-    let tokens = assert False undefined :: OAuth
+    let tokens = createToken configOAuthConsumerKey configOAuthConsumerSecret
+
+    cred <- liftIO $ do
+      cred <- loadCredential configCredentialFile
+        >>= maybe (authorize configProxy tokens configGetPIN mng) return
+      saveCredential configCredentialFile cred
+      return cred
+
     runReaderT (runIdentityT (unTwitterT m)) Env
       { envOAuth = tokens
-      , envCredential = Credential []
-      , envProxy = Nothing
+      , envCredential = cred
+      , envProxy = configProxy
       , envManager = mng
       }
+
+createToken :: S.ByteString -> S.ByteString -> OAuth
+createToken consumerKey consumerSecret = newOAuth
+  { oauthServerName = "twitter"
+  , oauthRequestUri = "http://twitter.com/oauth/request_token"
+  , oauthAccessTokenUri = "http://twitter.com/oauth/access_token"
+  , oauthAuthorizeUri = "http://twitter.com/oauth/authorize"
+  , oauthConsumerKey = consumerKey
+  , oauthConsumerSecret = consumerSecret
+  }
+
+loadCredential :: FilePath -> IO (Maybe Credential)
+loadCredential file = do
+  existp <- doesFileExist file
+  if existp
+    then do
+      content <- S.readFile file
+      return $ (maybeResult . parse json) content >>= parseMaybe parseJSON >>= return . Credential
+    else return Nothing
+
+saveCredential :: FilePath -> Credential -> IO ()
+saveCredential file cred = L.writeFile file $ encode . unCredential $ cred
+
+authorize :: Maybe Proxy -> OAuth -> (String -> IO String) -> Manager -> IO Credential
+authorize pr oauth getPIN mng = runResourceT $ do
+  cred <- getTemporaryCredentialProxy pr oauth mng
+  let url = authorizeUrl oauth cred
+  pin <- liftIO $ getPIN url
+  getAccessTokenProxy pr oauth (insert "oauth_verifier" (S.pack pin) cred) mng

@@ -5,10 +5,10 @@
 
 module Web.Twitter.Api (
   sourceTwitter,
+  sourceJSON,
   sourceCursor,
+  sourcePages,
   apiJSON,
-
---  apiWithPages,
   ) where
 
 import           Web.Authenticate.OAuth
@@ -36,25 +36,35 @@ sourceTwitter :: MonadResourceBase m
                  => HT.Method
                  -> String
                  -> HT.Query
-                 -> TwitterT m (ResumableSource (TwitterT m) ByteString)
+                 -> Source (TwitterT m) ByteString
 sourceTwitter m url query = do
-  Env {..} <- ask
-  let url' = fromJust $ parseUrl $ endpoint ++ url
-  req0 <- signOAuth envOAuth envCredential url'
-  req  <- return $ req0
-          { method = m
-          , queryString = HT.renderQuery False query
-          , proxy = envProxy
-          }
-  resp <- http req envManager
-  return $ responseBody resp
+  (src, release) <- lift $ do
+    Env {..} <- ask
+    let url' = fromJust $ parseUrl $ endpoint ++ url
+    req0 <- signOAuth envOAuth envCredential url'
+    req  <- return $ req0
+            { method = m
+            , queryString = HT.renderQuery False query
+            , proxy = envProxy
+            }
+    resp <- http req envManager
+    unwrapResumable $ responseBody resp
+  addCleanup (const release) src
+
+sourceJSON :: (FromJSON a, MonadResourceBase m)
+              => HT.Method
+              -> String
+              -> HT.Query
+              -> Source (TwitterT m) a
+sourceJSON m url query =
+  sourceTwitter m url query =$= conduitJSON
 
 sourceCursor :: (FromJSON a, MonadResourceBase m)
-             => HT.Method
-             -> String
-             -> HT.Query
-             -> T.Text
-             -> Source (TwitterT m) a
+                => HT.Method
+                -> String
+                -> HT.Query
+                -> T.Text
+                -> Source (TwitterT m) a
 sourceCursor m url query cursorKey = go (-1 :: Int) where
   go cursor = do
     let query' = ("cursor", Just $ showBS cursor) `insertQuery` query
@@ -69,40 +79,20 @@ sourceCursor m url query cursorKey = go (-1 :: Int) where
   p (Object v) = (,) <$> v .: cursorKey <*> v .: "next_cursor"
   p _ = mempty
 
-{-
-apiCursor :: (FromJSON a, Monad m)
-             => String
-             -> HT.Query
-             -> T.Text
-             -> Source (TwitterT m) a
-apiCursor url query cursorKey = go (-1 :: Int) where
-  go cursor = do
-    let query' = ("cursor", Just $ showBS cursor) `insertQuery` query
-    j <- sourceTwitter "GET" (endpoint ++ url) query' $$ sinkJSON
-    case parseMaybe p j of
-      Nothing ->
-        return C.sourceNull
-      Just (res, 0) ->
-        return $ C.sourceList res
-      Just (res, nextCursor) ->
-        mappend (C.sourceList res) <$> go nextCursor
-
-  p (Object v) = (,) <$> v .: cursorKey <*> v .: "next_cursor"
-  p _ = mempty
-
-apiWithPages :: (FromJSON a, Monad m)
-                => String -> HT.Query -> Source (TwitterT m) a
-apiWithPages url query = go 1 where
+sourcePages :: (FromJSON a, MonadResourceBase m)
+               => HT.Method
+               -> String
+               -> HT.Query
+               -> Source (TwitterT m) a
+sourcePages m url query = go (1 :: Int) where
   go page = do
     let query' = ("page", Just $ showBS page) `insertQuery` query
-    rs <- lift $ sourceTwitter "GET" (endpoint ++ url) query' $$ sinkJSON
+    rs <- lift $ apiJSON m url query'
     when (not $ null rs) $ do
-      mapM_ rs yield
+      C.sourceList rs
       go $ page + 1
--}
 
 apiJSON :: (FromJSON b, MonadResourceBase m)
            => HT.Method -> String -> HT.Query -> TwitterT m b
-apiJSON m url query = do
-  rs <- sourceTwitter m url query
-  rs $$+- sinkJSON
+apiJSON m url query =
+  sourceTwitter m url query $$ sinkJSON

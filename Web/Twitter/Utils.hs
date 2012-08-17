@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module Web.Twitter.Utils (
-  sinkJSON,
+  sinkJSON, conduitJSON,
   parseFromJSON,
   showBS,
   insertQuery,
@@ -35,6 +35,9 @@ parseFromJSON = do
 
 sinkJSON :: (FromJSON a, MonadResource m) => GLSink ByteString m a
 sinkJSON = sinkParser parseFromJSON
+
+conduitJSON :: (FromJSON a, MonadResource m) => GLInfConduit ByteString m a
+conduitJSON = mapOutput snd $ conduitParser parseFromJSON
 
 showBS :: Show a => a -> ByteString
 showBS = B8.pack . show

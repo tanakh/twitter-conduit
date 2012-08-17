@@ -74,6 +74,7 @@ mkQueryList (QListName listname) =
     lstName = drop 1 ln
 
 friendsIds :: MonadResourceBase m => QueryUser -> Source (TwitterT m) UserId
+
 friendsIds   q = sourceCursor "GET" "friends/ids.json"   (mkQueryUser q) "ids"
 
 followersIds :: MonadResourceBase m => QueryUser -> Source (TwitterT m) UserId

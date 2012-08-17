@@ -61,27 +61,29 @@ executable oslist
   ghc-options:     -Wall
 
   build-depends:   base
-                 , twitter-conduit
-
-  other-modules:   Common
-
-executable userstream
-  main-is:         userstream.hs
-  hs-source-dirs:  sample
-
-  ghc-options:     -Wall
-
-  build-depends:   base
                  , mtl
                  , containers
                  , conduit
-                 , directory
-                 , filepath
-                 , attoparsec
-                 , bytestring
-                 , case-insensitive
-                 , aeson
-                 , http-conduit
                  , network
-                 , authenticate-oauth
                  , twitter-conduit
+
+-- executable userstream
+--   main-is:         userstream.hs
+--   hs-source-dirs:  sample
+
+--   ghc-options:     -Wall
+
+--   build-depends:   base
+--                  , mtl
+--                  , containers
+--                  , conduit
+--                  , directory
+--                  , filepath
+--                  , attoparsec
+--                  , bytestring
+--                  , case-insensitive
+--                  , aeson
+--                  , http-conduit
+--                  , network
+--                  , authenticate-oauth
+--                  , twitter-conduit
