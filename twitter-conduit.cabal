@@ -34,7 +34,6 @@ library
                  , containers         >= 0.4
                  , directory
                  , filepath
-                 , case-insensitive
                  , network
                  , monad-control
                  , data-default
