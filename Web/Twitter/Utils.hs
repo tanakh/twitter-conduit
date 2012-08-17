@@ -2,9 +2,6 @@
 
 module Web.Twitter.Utils (
   sinkJSON,
-  sinkFromJSON,
-  conduitJSON,
-  conduitFromJSON,
   parseFromJSON,
   showBS,
   insertQuery,
@@ -12,7 +9,6 @@ module Web.Twitter.Utils (
 
 import Control.Applicative
 import Control.Exception
-import Control.Monad.Trans
 import Data.Aeson hiding (Error)
 import qualified Data.Aeson.Types as AT
 import qualified Data.Attoparsec.Types as A
@@ -29,7 +25,7 @@ data TwitterError
   deriving (Show, Data, Typeable)
 
 instance Exception TwitterError
- 
+
 parseFromJSON :: FromJSON a => A.Parser ByteString a
 parseFromJSON = do
   v <- json
@@ -37,21 +33,8 @@ parseFromJSON = do
     AT.Error _ -> empty
     AT.Success r -> return r
 
-sinkJSON :: MonadResource m => Sink ByteString m Value
-sinkJSON = sinkParser json
-
-sinkFromJSON :: (FromJSON a, MonadResource m) => Sink ByteString m a
-sinkFromJSON = do
-  v <- sinkJSON
-  case fromJSON v of
-    AT.Error err -> lift $ liftIO $ throwIO $ TwitterError err
-    AT.Success r -> return r
-
-conduitJSON :: MonadResource m => Conduit ByteString m Value
-conduitJSON = C.sequence sinkJSON
-
-conduitFromJSON :: (FromJSON a, MonadResource m) => Conduit ByteString m a
-conduitFromJSON = C.sequence sinkFromJSON
+sinkJSON :: (FromJSON a, MonadResource m) => GLSink ByteString m a
+sinkJSON = sinkParser parseFromJSON
 
 showBS :: Show a => a -> ByteString
 showBS = B8.pack . show

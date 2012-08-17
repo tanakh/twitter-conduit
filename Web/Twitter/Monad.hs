@@ -1,68 +1,81 @@
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Web.Twitter.Monad (
-  TW,
-  TWEnv (..),
-  runTW,
-  runTWManager,
-  newEnv,
-  getOAuth,
-  getCredential,
-  getProxy,
-  getManager,
-  signOAuthTW,
+  Twitter, TwitterT, unTwitterT,
+  runTwitterT,
+  Env(..),
+  Config(..), def,
   ) where
 
-import Control.Monad.Trans
-import Control.Monad.Reader
-import Network.HTTP.Conduit
-import Web.Authenticate.OAuth
+import           Control.Applicative
+import           Control.Exception
+import           Control.Monad.Base
+import           Control.Monad.Reader
+import           Control.Monad.Trans.Control
+import           Control.Monad.Trans.Identity
+import           Control.Monad.Trans.Resource
+import           Data.Default
+import           Network.HTTP.Conduit
+import           Web.Authenticate.OAuth
 
-type TW = ReaderT TWEnv IO
+type Twitter    = TwitterT IO
+type TwitterT m = TwitterT_ (ReaderT Env (ResourceT m))
 
-data TWEnv = TWEnv
-             { twOAuth :: OAuth
-             , twCredential :: Credential
-             , twProxy :: Maybe Proxy
-             , twManager :: Maybe Manager
-             }
+newtype TwitterT_ m a
+  = TwitterT_ { unTwitterT :: IdentityT m a }
+  deriving
+    ( Functor, Applicative, Monad      -- basic
+    , MonadIO, MonadTrans, MonadBase b -- transformers
+    , MonadThrow, MonadResource        -- resourcet
+    )
 
-runTW' :: TWEnv -> TW a -> IO a
-runTW' env m = runReaderT m env
+deriving instance (Monad m, MonadReader Env m) => MonadReader Env (TwitterT_ m)
 
-runTW :: TWEnv -> TW a -> IO a
-runTW env st =
-  case twManager env of
-    Nothing -> withManager $ \mgr -> liftIO $ runTWManager env mgr st
-    Just _ -> runTW' env st
+instance MonadTransControl TwitterT_ where
+  newtype StT TwitterT_ a =
+    StTwitterT { unStTwitter :: a }
 
-runTWManager :: TWEnv -> Manager -> TW a -> IO a
-runTWManager env mgr st = runTW' env { twManager = Just mgr } st
+  liftWith f =
+    TwitterT_ $ lift $ f $ liftM StTwitterT . runIdentityT . unTwitterT
 
-newEnv :: OAuth -> TWEnv
-newEnv tokens
-  = TWEnv
-    { twOAuth = tokens
-    , twCredential = Credential []
-    , twProxy = Nothing
-    , twManager = Nothing
+  restoreT =
+    TwitterT_ . lift . liftM unStTwitter
+
+instance MonadBaseControl b m => MonadBaseControl b (TwitterT_ m) where
+  newtype StM (TwitterT_ m) a = StMT { unStMT :: ComposeSt TwitterT_ m a }
+  liftBaseWith = defaultLiftBaseWith StMT
+  restoreM     = defaultRestoreM   unStMT
+
+data Env
+  = Env
+    { envOAuth      :: OAuth
+    , envCredential :: Credential
+    , envProxy      :: Maybe Proxy
+    , envManager    :: Manager
     }
 
-getOAuth :: TW OAuth
-getOAuth = asks twOAuth
+data Config
+  = Config
+    {
+    }
 
-getCredential :: TW Credential
-getCredential = asks twCredential
+instance Default Config where
+  def = Config {}
 
-getProxy :: TW (Maybe Proxy)
-getProxy = asks twProxy
-
-getManager :: TW Manager
-getManager = do
-  mgr <- asks twManager
-  case mgr of
-    Just m -> return m
-    Nothing -> error "manager is not initialized"
-
-signOAuthTW :: Request TW -> TW (Request TW)
-signOAuthTW = undefined
+runTwitterT :: MonadResourceBase m => Config -> TwitterT m a -> m a
+runTwitterT _conf m =
+  withManager $ \mng -> do
+    let tokens = assert False undefined :: OAuth
+    runReaderT (runIdentityT (unTwitterT m)) Env
+      { envOAuth = tokens
+      , envCredential = Credential []
+      , envProxy = Nothing
+      , envManager = mng
+      }

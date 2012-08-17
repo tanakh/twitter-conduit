@@ -29,11 +29,13 @@ library
                  , http-conduit       >= 1.5
                  , bytestring         >= 0.9
                  , text               >= 0.10
-                 , containers         >= 0.5
+                 , containers         >= 0.4
                  , directory
                  , filepath
                  , case-insensitive
                  , network
+                 , monad-control
+                 , data-default
 
   exposed-modules: Web.Twitter
                    Web.Twitter.Api
