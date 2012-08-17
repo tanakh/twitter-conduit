@@ -4,6 +4,7 @@
 {-# LANGUAGE RecordWildCards   #-}
 
 module Web.Twitter.Api (
+  -- source of twitter APIs
   sourceTwitter,
   sourceJSON,
   sourceCursor,
@@ -27,7 +28,6 @@ import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.ByteString        (ByteString)
 import           Data.Conduit
-import qualified Data.Conduit.List      as C
 import           Data.Maybe
 import           Data.Monoid
 import qualified Data.Text              as T
@@ -84,7 +84,7 @@ sourceCursor m url query cursorKey = go (-1 :: Int) where
       Nothing ->
         return ()
       Just (res, nextCursor) -> do
-        C.sourceList res
+        mapM_ yield res
         when (nextCursor > 0) $ go nextCursor
 
   p (Object v) = (,) <$> v .: cursorKey <*> v .: "next_cursor"
@@ -100,7 +100,7 @@ sourcePages m url query = go (1 :: Int) where
     let query' = ("page", Just $ showBS page) `insertQuery` query
     rs <- lift $ apiJSON m url query'
     when (not $ null rs) $ do
-      C.sourceList rs
+      mapM_ yield rs
       go $ page + 1
 
 apiJSON :: (FromJSON b, MonadResourceBase m)

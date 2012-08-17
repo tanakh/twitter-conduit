@@ -1,31 +1,31 @@
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ConstraintKinds, FlexibleContexts #-}
 
-module Web.Twitter.Post
-       ( statusesUpdate
+module Web.Twitter.Post (
+  statusesUpdate,
 
-         -- * Friendship
-         -- , friendshipCreate
-         -- , friendshipDestroy
+  -- * Friendship
+  -- friendshipCreate,
+  -- friendshipDestroy,
 
-         -- * Favorites
-         -- , favoritesCreate
-         -- , favoritesDestroy
+  -- * Favorites
+  -- favoritesCreate,
+  -- favoritesDestroy,
 
-         -- * Lists
-         -- , listsCreate
-         -- , listsDestroy
-         -- , listsUpdate
-         -- , listsMembersCreate
-         -- , listsMembersDestroy
-       )
-       where
+  -- * Lists
+  -- listsCreate,
+  -- listsDestroy,
+  -- listsUpdate,
+  -- listsMembersCreate,
+  -- listsMembersDestroy,
+  ) where
 
-import Control.Monad.Trans.Resource
-import Data.ByteString (ByteString)
+import           Control.Monad.Trans.Resource
+import           Data.ByteString              (ByteString)
 
-import Web.Twitter.Monad
-import Web.Twitter.Api
+import           Web.Twitter.Api
+import           Web.Twitter.Monad
 
 statusesUpdate :: MonadResourceBase m => ByteString -> TwitterT m ()
 statusesUpdate tweet =

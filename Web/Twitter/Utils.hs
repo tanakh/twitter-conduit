@@ -7,18 +7,18 @@ module Web.Twitter.Utils (
   insertQuery,
   ) where
 
-import Control.Applicative
-import Control.Exception
-import Data.Aeson hiding (Error)
-import qualified Data.Aeson.Types as AT
-import qualified Data.Attoparsec.Types as A
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as B8
-import Data.Conduit as C
-import Data.Conduit.Attoparsec
-import Data.Data
-import qualified Network.HTTP.Types as HT
-import qualified Data.Map as M
+import           Control.Applicative
+import           Control.Exception
+import           Data.Aeson              hiding (Error)
+import qualified Data.Aeson.Types        as AT
+import qualified Data.Attoparsec.Types   as A
+import           Data.ByteString         (ByteString)
+import qualified Data.ByteString.Char8   as B8
+import           Data.Conduit            as C
+import           Data.Conduit.Attoparsec
+import           Data.Data
+import qualified Data.Map                as M
+import qualified Network.HTTP.Types      as HT
 
 data TwitterError
   = TwitterError String

@@ -10,6 +10,7 @@
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Web.Twitter.Monad (
+  -- The Twitter Monad
   Twitter, TwitterT, unTwitterT,
   runTwitterT,
   Env(..),

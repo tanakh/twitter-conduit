@@ -3,14 +3,14 @@ module Web.Twitter.Query (
   QueryList(..),
   ) where
 
-import Web.Twitter.Types
+import           Web.Twitter.Types
 
 data QueryUser
-  = QUserId UserId 
+  = QUserId UserId
   | QScreenName String
   deriving (Show, Eq)
 
 data QueryList
-  = QListId Integer 
+  = QListId Integer
   | QListName String
   deriving (Show, Eq)

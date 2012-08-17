@@ -1,7 +1,9 @@
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ConstraintKinds, FlexibleContexts #-}
 
 module Web.Twitter.Status (
+  -- * Statuses
   statuses,
 
   -- * Timelines
@@ -16,13 +18,13 @@ module Web.Twitter.Status (
   retweetedByUser,
   ) where
 
-import Data.Aeson
-import Data.Conduit
+import           Data.Aeson
+import           Data.Conduit
 import qualified Network.HTTP.Types as HT
 
-import Web.Twitter.Api
-import Web.Twitter.Monad
-import Web.Twitter.Types
+import           Web.Twitter.Api
+import           Web.Twitter.Monad
+import           Web.Twitter.Types
 
 statuses :: (FromJSON a, MonadResourceBase m)
             => String -> HT.Query -> Source (TwitterT m) a

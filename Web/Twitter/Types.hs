@@ -1,33 +1,33 @@
-{-# LANGUAGE OverloadedStrings, DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
-module Web.Twitter.Types
-       ( TwitterException(..)
-       , DateString
-       , UserId
-       , URLString
-       , UserName
-       , StatusId
-       , StreamingAPI(..)
-       , Status(..)
-       , RetweetedStatus(..)
-       , EventTarget(..)
-       , Event(..)
-       , Delete(..)
-       , User(..)
-       , List(..)
-       , checkError
-       )
-       where
+module Web.Twitter.Types (
+  TwitterException(..),
+  DateString,
+  UserId,
+  URLString,
+  UserName,
+  StatusId,
+  StreamingAPI(..),
+  Status(..),
+  RetweetedStatus(..),
+  EventTarget(..),
+  Event(..),
+  Delete(..),
+  User(..),
+  List(..),
+  checkError,
+  ) where
 
-import qualified Network.HTTP.Types as HT
-import Data.Aeson
-import Data.Aeson.Types (Parser)
-import Data.Text as T
-import Data.ByteString (ByteString)
-import Data.Typeable
-import Control.Applicative
-import Control.Monad
-import Control.Exception
+import           Control.Applicative
+import           Control.Exception
+import           Control.Monad
+import           Data.Aeson
+import           Data.Aeson.Types    (Parser)
+import           Data.ByteString     (ByteString)
+import           Data.Text           as T
+import           Data.Typeable
+import qualified Network.HTTP.Types  as HT
 
 data TwitterException = HTTPStatusCodeException HT.Status
                       | ParserException SomeException [ByteString]
