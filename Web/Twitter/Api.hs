@@ -9,6 +9,11 @@ module Web.Twitter.Api (
   sourceCursor,
   sourcePages,
   apiJSON,
+
+  -- endpoints
+  endpoint,
+  userstreamEndpoint,
+  sitestreamEndpoint,
   ) where
 
 import           Web.Authenticate.OAuth
@@ -32,6 +37,12 @@ import qualified Network.HTTP.Types     as HT
 endpoint :: String
 endpoint = "https://api.twitter.com/1/"
 
+userstreamEndpoint :: String
+userstreamEndpoint = "https://userstream.twitter.com/2/user.json"
+
+sitestreamEndpoint :: String
+sitestreamEndpoint = "https://sitestream.twitter.com/2b/site.json"
+
 sourceTwitter :: MonadResourceBase m
                  => HT.Method
                  -> String
@@ -40,7 +51,7 @@ sourceTwitter :: MonadResourceBase m
 sourceTwitter m url query = do
   (src, release) <- lift $ do
     Env {..} <- ask
-    let url' = fromJust $ parseUrl $ endpoint ++ url
+    let url' = fromJust $ parseUrl url
     req0 <- signOAuth envOAuth envCredential url'
     req  <- return $ req0
             { method = m

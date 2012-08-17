@@ -10,19 +10,20 @@ import System.Environment
 
 import Web.Twitter
 
+conf :: Config
+conf = Config
+  { configOAuthConsumerKey = "K6fxaUunNsxMTNmFYhg"
+  , configOAuthConsumerSecret = "nNFw21METyA0J5yuAYeeQxlB7ZXPgJFoFVoKI97Kk"
+  , configCredentialFile = ".cred"
+  , configGetPIN = \url -> do
+    putStrLn $ "Access and get PIN: " ++ url
+    getLine
+  , configProxy = Nothing
+  }
+
 main :: IO ()
 main = withSocketsDo $ do
   [QScreenName -> screenName] <- getArgs
-
-  conf <- return Config
-    { configOAuthConsumerKey = "K6fxaUunNsxMTNmFYhg"
-    , configOAuthConsumerSecret = "nNFw21METyA0J5yuAYeeQxlB7ZXPgJFoFVoKI97Kk"
-    , configCredentialFile = ".cred"
-    , configGetPIN = \url -> do
-      putStrLn $ "Access and get PIN: " ++ url
-      getLine
-    , configProxy = Nothing
-    }
 
   runTwitterT conf $ do
     folids <- followersIds screenName $$ CL.consume

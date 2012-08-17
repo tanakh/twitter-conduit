@@ -74,17 +74,21 @@ mkQueryList (QListName listname) =
     lstName = drop 1 ln
 
 friendsIds :: MonadResourceBase m => QueryUser -> Source (TwitterT m) UserId
-
-friendsIds   q = sourceCursor "GET" "friends/ids.json"   (mkQueryUser q) "ids"
+friendsIds q =
+  sourceCursor "GET" (endpoint ++ "friends/ids.json") (mkQueryUser q) "ids"
 
 followersIds :: MonadResourceBase m => QueryUser -> Source (TwitterT m) UserId
-followersIds q = sourceCursor "GET" "followers/ids.json" (mkQueryUser q) "ids"
+followersIds q =
+  sourceCursor "GET" (endpoint ++ "followers/ids.json") (mkQueryUser q) "ids"
 
 usersShow :: MonadResourceBase m => QueryUser -> TwitterT m User
-usersShow q = apiJSON "GET" "users/show.json" (mkQueryUser q)
+usersShow q =
+  apiJSON "GET" (endpoint ++ "users/show.json") (mkQueryUser q)
 
 listsAll :: MonadResourceBase m => QueryUser -> Source (TwitterT m) List
-listsAll q = sourceCursor "GET" "listps/all.json" (mkQueryUser q) ""
+listsAll q =
+  sourceCursor "GET" (endpoint ++ "listps/all.json") (mkQueryUser q) ""
 
 listsMembers :: MonadResourceBase m => QueryList -> Source (TwitterT m) User
-listsMembers q = sourceCursor "GET" "lists/members.json" (mkQueryList q) "users"
+listsMembers q =
+  sourceCursor "GET" (endpoint ++ "lists/members.json") (mkQueryList q) "users"

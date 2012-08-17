@@ -26,7 +26,7 @@ import Web.Twitter.Types
 
 statuses :: (FromJSON a, MonadResourceBase m)
             => String -> HT.Query -> Source (TwitterT m) a
-statuses url query = sourcePages "GET" ("statuses/" ++ url) query
+statuses url query = sourcePages "GET" (endpoint ++ "statuses/" ++ url) query
 
 homeTimeline :: MonadResourceBase m => HT.Query -> Source (TwitterT m) Status
 homeTimeline = statuses "home_timeline.json"
@@ -66,9 +66,9 @@ idRetweetedByIds status_id = statuses (show status_id ++ "/retweeted_by/ids.json
 retweetsId :: MonadResourceBase m
               => StatusId -> HT.Query -> TwitterT m [RetweetedStatus]
 retweetsId status_id query = apiJSON "GET" uri query
-  where uri = "statuses/retweets/" ++ show status_id ++ ".json"
+  where uri = endpoint ++ "statuses/retweets/" ++ show status_id ++ ".json"
 
 showId :: MonadResourceBase m
           => StatusId -> HT.Query -> TwitterT m Status
 showId status_id query =
-  apiJSON "GET" ("statuses/show/" ++ show status_id ++ ".json") query
+  apiJSON "GET" (endpoint ++ "statuses/show/" ++ show status_id ++ ".json") query

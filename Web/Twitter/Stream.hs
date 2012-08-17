@@ -17,7 +17,7 @@ import Web.Twitter.Types
 userstream :: MonadResourceBase m
               => Source (TwitterT m) StreamingAPI
 userstream =
-  sourceJSON "GET" "https://userstream.twitter.com/2/user.json" []
+  sourceJSON "GET" userstreamEndpoint []
 
 statusesFilter :: MonadResourceBase m
                   => HT.Query -> Source (TwitterT m) StreamingAPI

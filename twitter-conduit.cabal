@@ -50,7 +50,6 @@ library
                    Web.Twitter.Types
 
   other-modules:   Web.Twitter.Utils
-                   Common
 
   ghc-options:     -Wall
 
@@ -67,23 +66,14 @@ executable oslist
                  , network
                  , twitter-conduit
 
--- executable userstream
---   main-is:         userstream.hs
---   hs-source-dirs:  sample
+executable userstream
+  main-is:         userstream.hs
+  hs-source-dirs:  sample
 
---   ghc-options:     -Wall
+  ghc-options:     -Wall
 
---   build-depends:   base
---                  , mtl
---                  , containers
---                  , conduit
---                  , directory
---                  , filepath
---                  , attoparsec
---                  , bytestring
---                  , case-insensitive
---                  , aeson
---                  , http-conduit
---                  , network
---                  , authenticate-oauth
---                  , twitter-conduit
+  build-depends:   base
+                 , mtl
+                 , conduit
+                 , network
+                 , twitter-conduit
