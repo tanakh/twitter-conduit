@@ -13,8 +13,10 @@ module Web.Twitter.Monad (
   -- * The Twitter Monad
   Twitter, TwitterT, unTwitterT,
   runTwitterT,
-  Env(..),
   Config(..), def,
+
+  -- * HTTP Access
+  twitterHTTP,
 
   -- * Useful re-exports
   MonadResourceBase,
@@ -31,6 +33,7 @@ import           Data.Aeson.Types             (parseMaybe)
 import           Data.Attoparsec
 import qualified Data.ByteString.Char8        as S
 import qualified Data.ByteString.Lazy.Char8   as L
+import           Data.Conduit
 import           Data.Default
 import           Network.HTTP.Conduit
 import           System.Directory
@@ -46,9 +49,6 @@ newtype TwitterT_ m a
     , MonadIO, MonadTrans, MonadBase b -- transformers
     , MonadThrow, MonadResource        -- resourcet
     )
-
--- MonadReader instance need standalone instance for contexts.
-deriving instance (Monad m, MonadReader Env m) => MonadReader Env (TwitterT_ m)
 
 instance MonadTransControl TwitterT_ where
   newtype StT TwitterT_ a =
@@ -133,3 +133,11 @@ authorize pr oauth getPIN mng = runResourceT $ do
   let url = authorizeUrl oauth cred
   pin <- liftIO $ getPIN url
   getAccessTokenProxy pr oauth (insert "oauth_verifier" (S.pack pin) cred) mng
+
+twitterHTTP :: (MonadResourceBase m)
+               => Request (TwitterT m)
+               -> TwitterT m (Response (ResumableSource (TwitterT m) S.ByteString))
+twitterHTTP req0 = do
+  Env {..} <- TwitterT_ ask
+  req <- signOAuth envOAuth envCredential $ req0 { proxy = envProxy }
+  http req envManager

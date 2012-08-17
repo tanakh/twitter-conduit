@@ -4,35 +4,33 @@
 {-# LANGUAGE RecordWildCards   #-}
 
 module Web.Twitter.Api (
-  -- source of twitter APIs
+  -- * source of twitter APIs
   sourceTwitter,
   sourceJSON,
   sourceCursor,
   sourcePages,
   apiJSON,
 
-  -- endpoints
+  -- * endpoints
   endpoint,
   userstreamEndpoint,
   sitestreamEndpoint,
   ) where
 
-import           Web.Authenticate.OAuth
 import           Web.Twitter.Monad
 import           Web.Twitter.Utils
 
 import           Control.Applicative
 import           Control.Monad
-import           Control.Monad.Reader
+import           Control.Monad.Trans
 import           Data.Aeson
-import           Data.Aeson.Types
-import           Data.ByteString        (ByteString)
+import           Data.Aeson.Types     (parseMaybe)
+import           Data.ByteString      (ByteString)
 import           Data.Conduit
 import           Data.Maybe
-import           Data.Monoid
-import qualified Data.Text              as T
+import qualified Data.Text            as T
 import           Network.HTTP.Conduit
-import qualified Network.HTTP.Types     as HT
+import qualified Network.HTTP.Types   as HT
 
 endpoint :: String
 endpoint = "https://api.twitter.com/1/"
@@ -50,15 +48,11 @@ sourceTwitter :: MonadResourceBase m
                  -> Source (TwitterT m) ByteString
 sourceTwitter m url query = do
   (src, release) <- lift $ do
-    Env {..} <- ask
-    let url' = fromJust $ parseUrl url
-    req0 <- signOAuth envOAuth envCredential url'
-    req  <- return $ req0
-            { method = m
-            , queryString = HT.renderQuery False query
-            , proxy = envProxy
-            }
-    resp <- http req envManager
+    let req = (fromJust (parseUrl url))
+          { method = m
+          , queryString = HT.renderQuery False query
+          }
+    resp <- twitterHTTP req
     unwrapResumable $ responseBody resp
   addCleanup (const release) src
 
@@ -88,7 +82,7 @@ sourceCursor m url query cursorKey = go (-1 :: Int) where
         when (nextCursor > 0) $ go nextCursor
 
   p (Object v) = (,) <$> v .: cursorKey <*> v .: "next_cursor"
-  p _ = mempty
+  p _ = mzero
 
 sourcePages :: (FromJSON a, MonadResourceBase m)
                => HT.Method
