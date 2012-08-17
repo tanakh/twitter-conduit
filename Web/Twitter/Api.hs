@@ -15,6 +15,9 @@ module Web.Twitter.Api (
   endpoint,
   userstreamEndpoint,
   sitestreamEndpoint,
+
+  -- * Re-exports
+  StdMethod(..),
   ) where
 
 import           Web.Twitter.Monad
@@ -24,13 +27,14 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Trans
 import           Data.Aeson
-import           Data.Aeson.Types     (parseMaybe)
-import           Data.ByteString      (ByteString)
+import           Data.Aeson.Types          (parseMaybe)
+import           Data.ByteString           (ByteString)
 import           Data.Conduit
 import           Data.Maybe
-import qualified Data.Text            as T
+import qualified Data.Text                 as T
 import           Network.HTTP.Conduit
-import qualified Network.HTTP.Types   as HT
+import qualified Network.HTTP.Types        as HT
+import           Network.HTTP.Types.Method (StdMethod, renderStdMethod)
 
 endpoint :: String
 endpoint = "https://api.twitter.com/1/"
@@ -42,14 +46,14 @@ sitestreamEndpoint :: String
 sitestreamEndpoint = "https://sitestream.twitter.com/2b/site.json"
 
 sourceTwitter :: MonadResourceBase m
-                 => HT.Method
+                 => StdMethod
                  -> String
                  -> HT.Query
                  -> Source (TwitterT m) ByteString
 sourceTwitter m url query = do
   (src, release) <- lift $ do
     let req = (fromJust (parseUrl url))
-          { method = m
+          { method = renderStdMethod m
           , queryString = HT.renderQuery False query
           }
     resp <- twitterHTTP req
@@ -57,7 +61,7 @@ sourceTwitter m url query = do
   addCleanup (const release) src
 
 sourceJSON :: (FromJSON a, MonadResourceBase m)
-              => HT.Method
+              => StdMethod
               -> String
               -> HT.Query
               -> Source (TwitterT m) a
@@ -65,7 +69,7 @@ sourceJSON m url query =
   sourceTwitter m url query =$= conduitJSON
 
 sourceCursor :: (FromJSON a, MonadResourceBase m)
-                => HT.Method
+                => StdMethod
                 -> String
                 -> HT.Query
                 -> T.Text
@@ -85,7 +89,7 @@ sourceCursor m url query cursorKey = go (-1 :: Int) where
   p _ = mzero
 
 sourcePages :: (FromJSON a, MonadResourceBase m)
-               => HT.Method
+               => StdMethod
                -> String
                -> HT.Query
                -> Source (TwitterT m) a
@@ -98,6 +102,6 @@ sourcePages m url query = go (1 :: Int) where
       go $ page + 1
 
 apiJSON :: (FromJSON b, MonadResourceBase m)
-           => HT.Method -> String -> HT.Query -> TwitterT m b
+           => StdMethod -> String -> HT.Query -> TwitterT m b
 apiJSON m url query =
   sourceTwitter m url query $$ sinkJSON

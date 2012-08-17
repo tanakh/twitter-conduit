@@ -1,5 +1,6 @@
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ConstraintKinds, FlexibleContexts #-}
 
 module Web.Twitter.Stream (
   -- * StreamingAPI
@@ -7,19 +8,19 @@ module Web.Twitter.Stream (
   statusesFilter,
   ) where
 
-import Data.Conduit
+import           Data.Conduit
 import qualified Network.HTTP.Types as HT
 
-import Web.Twitter.Api
-import Web.Twitter.Monad
-import Web.Twitter.Types
+import           Web.Twitter.Api
+import           Web.Twitter.Monad
+import           Web.Twitter.Types
 
 userstream :: MonadResourceBase m
               => Source (TwitterT m) StreamingAPI
 userstream =
-  sourceJSON "GET" userstreamEndpoint []
+  sourceJSON GET userstreamEndpoint []
 
 statusesFilter :: MonadResourceBase m
                   => HT.Query -> Source (TwitterT m) StreamingAPI
 statusesFilter query =
-  sourceJSON "GET" "https://stream.twitter.com/1/statuses/filter.json" query
+  sourceJSON GET "https://stream.twitter.com/1/statuses/filter.json" query

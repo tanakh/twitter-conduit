@@ -29,4 +29,4 @@ import           Web.Twitter.Monad
 
 statusesUpdate :: MonadResourceBase m => ByteString -> TwitterT m ()
 statusesUpdate tweet =
-  apiJSON "POST" "statuses/update.json" [("status", Just tweet)]
+  apiJSON POST "statuses/update.json" [("status", Just tweet)]
